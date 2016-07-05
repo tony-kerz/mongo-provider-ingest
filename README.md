@@ -21,7 +21,7 @@ mongoimport --verbose --db test --ignoreBlanks --type csv --file providers.csv -
 ## tech notes
 
 the code was written using current [async/await](https://github.com/tc39/ecmascript-asyncawait) syntax,
-which is basically syntactic-sugar over promises that allows for a cleaner control flow by avoiding the [pyramid of doom](https://en.wikipedia.org/wiki/Pyramid_of_doom_(programming%29)
+which is basically syntactic-sugar over promises that allows for a cleaner control flow by avoiding the [pyramid of doom](https://en.wikipedia.org/wiki/Pyramid_of_doom_%28programming%29)
 
 unfortunately, there is currently an issue with promises and loops which lead to a memory-leak of sorts,
 so in order to skirt that issue, the ingest program is run in segments via skip/limit (see [run.bash](./run.bash))
