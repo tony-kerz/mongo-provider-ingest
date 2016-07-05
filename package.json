@@ -1,0 +1,33 @@
+{
+  "name": "provider-ingest",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "export DEBUG=app:* && babel-node --expose-gc ./src",
+    "wip": "export DEBUG=app:* && babel-node --expose-gc ./src/index00.js",
+    "leak-test-async": "export DEBUG=app:* && babel-node --expose-gc ./src/leak-test-async.js",
+    "leak-test-async-simple": "export DEBUG=app:* && babel-node --expose-gc ./src/leak-test-async-simple.js",
+    "leak-test-promise": "export DEBUG=app:* && babel-node --expose-gc ./src/leak-test-promise.js",
+    "leak-test-cb": "export DEBUG=app:* && babel-node --expose-gc ./src/leak-test-cb.js",
+    "build": "babel ./src -d ./dist",
+    "start-dist": "export DEBUG=app:* && node --expose-gc dist"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "debug": "^2.2.0",
+    "lodash": "^4.13.1",
+    "minimist": "^1.2.0",
+    "mongodb": "^2.1.18"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.10.1",
+    "babel-eslint": "^6.1.0",
+    "babel-plugin-transform-runtime": "^6.9.0",
+    "babel-polyfill": "^6.9.1",
+    "babel-preset-es2015": "^6.9.0",
+    "babel-preset-stage-0": "^6.5.0",
+    "eslint": "^2.13.1"
+  }
+}
