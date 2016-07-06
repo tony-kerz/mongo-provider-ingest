@@ -19,18 +19,24 @@ async function run(url) {
   const mainTimer = new Timer('main')
   mainTimer.start()
 
-  const collection = argv.url || 'cmsProviderLocations'
+  const source = argv.sourceCollection || 'cmsProviderLocations'
+  const target = argv.targetCollection || 'cmsDenormedProviderLocations'
 
-  dbg('run args: url=%o, collection=%o', url, collection)
+  dbg('run args: url=%o, source=%o, target=%o', url, source, target)
 
   try {
     const db = await client.connect(url)
 
-    const count = await db.collection(collection).count()
+    db.collection(target).createIndex({npi: 1})
+    db.collection(target).createIndex({firstName: 1})
+    db.collection(target).createIndex({lastName: 1})
+    db.collection(target).createIndex({geoPoint: '2dsphere'})
 
-    dbg('begin aggregation: count=%o', count)
+    const count = await db.collection(source).count()
 
-    const result = await db.collection(collection).aggregate(
+    dbg('begin aggregation: source-count=%o', count)
+
+    const result = await db.collection(source).aggregate(
       [
         {
           $lookup: {
@@ -59,10 +65,11 @@ async function run(url) {
             specialties: '$provider.specialties',
             orgName: '$location.orgName',
             address: '$location.address',
-            phone: '$location.phone'
+            phone: '$location.phone',
+            geoPoint: '$location.geoPoint'
           }
         },
-        {$out: 'cmsDenormedProviderLocations'}
+        {$out: target}
       ]
     )
     .toArray()
@@ -72,7 +79,9 @@ async function run(url) {
     db.close()
     mainTimer.stop()
     dbg(
-      'successfully aggregated [%o] provider-locations in [%s] seconds',
+      'successfully aggregated [%o] records from [%s] to [%s] in [%s] seconds',
+      source,
+      target,
       count,
       (mainTimer.total()/1000).toFixed(3)
     )
