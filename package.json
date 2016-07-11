@@ -6,6 +6,12 @@
   "scripts": {
     "start": "export DEBUG=app:* && babel-node ./src",
     "denorm": "export DEBUG=app:* && babel-node ./src/denorm.js",
+    "cms-providers": "export DEBUG=app:* && babel-node ./src/cms-providers.js",
+    "cms-locations": "export DEBUG=app:* && babel-node ./src/cms-locations.js",
+    "cms-provider-locations": "export DEBUG=app:* && babel-node ./src/cms-provider-locations.js",
+    "npi-providers": "export DEBUG=app:* && babel-node ./src/npi-providers.js",
+    "addresses": "export DEBUG=app:* && babel-node ./src/addresses.js",
+    "scratch": "export DEBUG=app:* && babel-node ./src/denorm-2.js",
     "leak-test-async": "export DEBUG=app:* && babel-node --expose-gc ./src/leak-test-async.js",
     "leak-test-async-simple": "export DEBUG=app:* && babel-node --expose-gc ./src/leak-test-async-simple.js",
     "leak-test-promise": "export DEBUG=app:* && babel-node --expose-gc ./src/leak-test-promise.js",
@@ -16,6 +22,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "axios": "^0.12.0",
     "debug": "^2.2.0",
     "lodash": "^4.13.1",
     "minimist": "^1.2.0",

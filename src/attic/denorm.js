@@ -20,7 +20,7 @@ async function run(url) {
   mainTimer.start()
 
   const source = argv.sourceCollection || 'cmsProviderLocations'
-  const target = argv.targetCollection || 'cmsProviderLocationsView'
+  const target = argv.targetCollection || 'cmsDenormedProviderLocations'
 
   dbg('run args: url=%o, source=%o, target=%o', url, source, target)
 
@@ -30,7 +30,7 @@ async function run(url) {
     db.collection(target).createIndex({npi: 1})
     db.collection(target).createIndex({firstName: 1})
     db.collection(target).createIndex({lastName: 1})
-    //db.collection(target).createIndex({geoPoint: '2dsphere'})
+    db.collection(target).createIndex({geoPoint: '2dsphere'})
 
     const count = await db.collection(source).count()
 
@@ -38,20 +38,19 @@ async function run(url) {
 
     const result = await db.collection(source).aggregate(
       [
-        {$limit: argv.limit || count},
         {
           $lookup: {
-            from: 'npiProviders',
-            localField: 'npi',
-            foreignField: 'npi',
+            from: 'cmsProviders',
+            localField: 'providerId',
+            foreignField: '_id',
             as: 'provider'
           }
         },
         {
           $lookup: {
             from: 'cmsLocations',
-            localField: 'locationKey',
-            foreignField: 'locationKey',
+            localField: 'locationId',
+            foreignField: '_id',
             as: 'location'
           }
         },
@@ -65,36 +64,9 @@ async function run(url) {
             lastName: '$provider.lastName',
             specialties: '$provider.specialties',
             orgName: '$location.orgName',
-            address: {
-              line1: '$location.addressLine1',
-              city: '$location.city',
-              state: '$location.state',
-              zip: '$location.zip'
-            },
+            address: '$location.address',
             phone: '$location.phone',
-            addressKey: '$location.addressKey'
-          }
-        },
-        {
-          $lookup: {
-            from: 'geocodedAddresses',
-            localField: 'addressKey',
-            foreignField: 'addressKey',
-            as: 'geocoded'
-          }
-        },
-        {$unwind: {path: '$geocoded', preserveNullAndEmptyArrays: true}},
-        {
-          $project: {
-            npi: 1,
-            firstName: 1,
-            middleName: 1,
-            lastName: 1,
-            specialties: 1,
-            orgName: 1,
-            address: 1,
-            phone: 1,
-            geoPoint: '$geocoded.geoPoint'
+            geoPoint: '$location.geoPoint'
           }
         },
         {$out: target}
@@ -108,9 +80,9 @@ async function run(url) {
     mainTimer.stop()
     dbg(
       'successfully aggregated [%o] records from [%s] to [%s] in [%s] seconds',
-      count,
       source,
       target,
+      count,
       (mainTimer.total()/1000).toFixed(3)
     )
   }
