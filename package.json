@@ -4,8 +4,8 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "start": "export DEBUG=app:* && babel-node --expose-gc ./src",
-    "wip": "export DEBUG=app:* && babel-node --expose-gc ./src/index00.js",
+    "start": "export DEBUG=app:* && babel-node ./src",
+    "denorm": "export DEBUG=app:* && babel-node ./src/denorm.js",
     "leak-test-async": "export DEBUG=app:* && babel-node --expose-gc ./src/leak-test-async.js",
     "leak-test-async-simple": "export DEBUG=app:* && babel-node --expose-gc ./src/leak-test-async-simple.js",
     "leak-test-promise": "export DEBUG=app:* && babel-node --expose-gc ./src/leak-test-promise.js",
