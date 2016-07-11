@@ -1,0 +1,76 @@
+[  
+	{  
+		"id":"35bacc7f-aa7a-47c7-9918-794c12f8602e",
+		"name": {
+			"firstName":"LAUREN",
+			"middleName":"",
+			"lastName":"SMITH",
+			"prefix":"",
+			"suffix":""
+		},
+		"identifiers":[  
+			{  
+				"id":{  
+					"assigningAuthorityName":"CMS",
+					"extension":"1659733681",
+					"oId":"2.16.840.1.113883.4.6"
+				},
+				"id":{  
+					"assigningAuthorityName":"SSA",
+					"extension":"000000000",
+					"oId":"2.16.840.1.113883.4.1"
+				},
+				"id":{
+					"assigningAuthorityName":"Alabama Motor Vehicle Bureau",
+					"extension":"AL7851854",
+					"oId":"2.16.840.1.113883.4.3.1"
+				},
+				"id":{
+					"assigningAuthorityName":"IRS EIN",
+					"extension":"12-3456789",
+					"oId":"2.16.840.1.113883.4.4"
+				}				
+			}
+		],
+		"specialties":[  
+			{
+				"code": {
+					"codeValue": "208D00000X",
+					"description": "Pain Management",
+					"system": "2.16.840.1.113883.6.101",
+					"systemName": "Provider Codes"
+				},
+				"code": {
+					"codeValue": "390200000X",
+					"description": "Student in an Organized Health Care Education/Training Program",
+					"system": "2.16.840.1.113883.6.101",
+					"systemName": "Provider Codes"
+				}
+			}
+		],
+		"addresses":[  
+			{  
+				"addressLine1":"1923 S UTICA AVE",
+				"addressLine2":"",
+				"city":"TULSA",
+				"state":"OK",
+				"zipcode":"74104-6520",
+				"addressType": {
+					"codeValue" = "HP",
+					"description" = "Home Address"
+				}
+			},
+			{  
+				"addressLine1":"878 S 800 W SUITE #2",
+				"addressLine2":"",
+				"city":"TULSA",
+				"state":"OK",
+				"zipcode":"74104-6520",
+				"addressType": {
+					"codeValue" = "WP",
+					"description" = "Work Address"
+				}
+			}
+		]
+	}
+]
