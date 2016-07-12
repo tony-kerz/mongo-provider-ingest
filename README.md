@@ -208,7 +208,7 @@ sections below describe normalized entities
 - program: [`denorm.js`](src/denorm.js)
 - sample:
 ```
-> db.cmsDenormedProviderLocations.find({geoPoint: {$ne: null}}).limit(1).pretty()
+> db.cmsProviderLocationsView.find({geoPoint: {$ne: null}}).limit(1).pretty()
 {
 	"_id" : ObjectId("5783ed5cdfd7e6b6bfefd322"),
 	"npi" : 1003001371,
