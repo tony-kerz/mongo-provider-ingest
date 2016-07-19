@@ -131,7 +131,7 @@ sections below describe normalized entities
 
 #### providers
 
-- program: [`npi-providers.js`](src/npi-providers.js)
+- [code](src/npi-providers.js)
 - sample:
 ```
 > db.npiProviders.find().limit(1).pretty()
@@ -149,7 +149,7 @@ sections below describe normalized entities
 
 #### locations
 
-- program: [`cms-providers.js`](src/cms-providers.js)
+- [code](src/cms-locations.js)
 - sample:
 ```
 > db.cmsLocations.find().limit(1).pretty()
@@ -167,7 +167,7 @@ sections below describe normalized entities
 ```
 
 #### provider-locations
-- program: [`cms-provider-locations.js`](src/cms-provider-locations.js)
+- [code](src/cms-provider-locations.js)
 - sample:
 ```
 > db.cmsProviderLocations.find().limit(1).pretty()
@@ -179,7 +179,7 @@ sections below describe normalized entities
 ```
 
 #### geocoded-addresses
-- program: [`geocoder.js`](src/geocoder.js)
+- [code](src/geocoder.js)
 - sample:
 ```
 > db.geocodedAddresses.find().limit(1).pretty()
@@ -204,19 +204,33 @@ sections below describe normalized entities
 
 ### denormalization steps
 
-#### provider-locations
-- program: [`denorm.js`](src/denorm.js)
+#### Provider-locations
+- [code](src/provider-locations-view.js)
 - sample:
 ```
-> db.cmsProviderLocationsView.find({geoPoint: {$ne: null}}).limit(1).pretty()
+> db.cmsProviderLocationsView.find({'address.state': 'NY'}).limit(1).pretty()
 {
 	"_id" : ObjectId("5783ed5cdfd7e6b6bfefd322"),
-	"npi" : 1003001371,
-	"firstName" : "DAVID",
-	"middleName" : "M",
-	"lastName" : "KANTER",
 	"specialties" : [
-		"208100000X"
+		{
+			"code" : "208100000X",
+			"text" : "Physical Medicine & Rehabilitation",
+			"system" : "2.16.840.1.113883.6.101"
+		}
+	],
+	"name" : {
+		"prefix" : null,
+		"first" : "DAVID",
+		"middle" : "M",
+		"last" : "KANTER",
+		"suffix" : null
+	},
+	"identifiers" : [
+		{
+			"authority" : "CMS",
+			"oid" : "2.16.840.1.113883.4.6",
+			"extension" : 1003001371
+		}
 	],
 	"orgName" : "PHYSICAL MEDICINE AND REHAB MEDICAL SERVICE GROUP",
 	"address" : {
@@ -234,4 +248,5 @@ sections below describe normalized entities
 		]
 	}
 }
+
 ```

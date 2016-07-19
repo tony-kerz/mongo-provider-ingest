@@ -1,8 +1,7 @@
 import debug from 'debug'
 import mongodb from 'mongodb'
-import Timer from './timer'
+import Timer from 'tymer'
 import assert from 'assert'
-//import stringify from 'json-stringify-safe'
 import minimist from 'minimist'
 
 const dbg = debug('app:npi-providers')
@@ -30,12 +29,13 @@ async function run(url) {
     db.collection(target).createIndex({npi: 1})
 
     const count = await db.collection(source).count()
+    const limit = argv.limit || count
 
-    dbg('begin aggregation: source-count=%o', count)
+    dbg('begin aggregation: source-count=%o, limit=%o', count, limit)
 
     const result = await db.collection(source).aggregate(
       [
-        //{$limit: 10000},
+        {$limit: limit},
         {
           $match: {
             $or: [
@@ -73,9 +73,11 @@ async function run(url) {
           $project: {
             _id: 0,
             npi: '$_id',
+            prefix: 1,
             firstName: 1,
             middleName: 1,
             lastName: 1,
+            suffix: 1,
             specialties: {
               '$setUnion': [
                 '$taxonomy1',
@@ -109,7 +111,7 @@ async function run(url) {
     mainTimer.stop()
     dbg(
       'successfully aggregated [%o] records from [%s] to [%s] in [%s] seconds',
-      count,
+      limit,
       source,
       target,
       (mainTimer.total()/1000).toFixed(3)
