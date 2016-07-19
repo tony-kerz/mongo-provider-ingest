@@ -1,9 +1,8 @@
 import debug from 'debug'
 import assert from 'assert'
 import mongodb from 'mongodb'
-//import axios from 'axios'
-import Timer from './timer'
-//import stringify from 'json-stringify-safe'
+import Timer from 'tymer'
+import geocode from 'geocodr'
 import minimist from 'minimist'
 
 const dbg = debug('app:mongodb-geocoder')
@@ -14,7 +13,7 @@ const ADDRESS_KEY = 'addressKey'
 
 const client = mongodb.MongoClient
 const url = argv.url || 'mongodb://localhost:27017/test'
-const source = argv.sourceCollection || 'cmsAggregatedLocations'
+const source = argv.sourceCollection || 'cmsLocations'
 const target = argv.targetCollection || 'geocodedAddresses'
 const thresh = argv.thresh || 100
 
@@ -31,7 +30,6 @@ async function run(url) {
   dbg('run: query=%o', query)
 
   const mainTimer = new Timer('main')
-  mainTimer.start()
 
   try {
     const db = await client.connect(url)
@@ -43,8 +41,6 @@ async function run(url) {
     const limit = argv.limit || count
 
     dbg('begin aggregation: source-count=%o, limit=%o', count, limit)
-
-    const timer = new Timer('for-each')
 
     await db.collection(source).aggregate(
       [
@@ -74,28 +70,41 @@ async function run(url) {
       ],
       {allowDiskUse: true}
     )
-    .each((err, record)=>{
+    .each(async (err, record)=>{
       assert.equal(null, err)
       if (record) {
-        timer.start()
-        //dbg('record=%o', record)
         if (record.geoPoint) {
           alreadyGeocodedCount++
         } else {
+          const timer = new Timer()
           notGeocodedCount++
+          const coordinates = await geocode(getAddress(record))
+          dbg('coordinates=%o', coordinates)
+          // insert new doc into target
+          const result = await db.collection(target).insert(
+            {
+              geoPoint: {type: 'Point', coordinates},
+              addressLine1: record.addressLine1,
+              city: record.city,
+              state: record.state,
+              zip: record.zip,
+              addressKey: record.addressKey
+            }
+          )
+          dbg('result=%o', result)
+          assert(result.modifiedCount == 1, 'expected inserted-count == 1')
+          timer.stop()
+          mainTimer.record(timer.last())
         }
-        timer.stop()
-        if (timer.count() % thresh == 0) {
-          // timer doesn't work correctly here because of async nature
-          dbg('timer=%o', timer.toString())
+        if (mainTimer.count() % thresh == 0) {
+          dbg('timer=%o', mainTimer.toString())
         }
       } else {
         // possible to hit this before last record processed...?
         // may require little sleep here to avoid race...
         dbg('no more records...')
         db.close()
-        mainTimer.stop()
-        dbg('successfully processed [%o] records in [%s] seconds', limit, (mainTimer.total()/1000).toFixed(3))
+        dbg('successfully processed [%o] records in [%s] seconds', mainTimer.count(), (mainTimer.total()/1000).toFixed(3))
         dbg('already-geocoded-count=%o, not-geocoded-count=%o', alreadyGeocodedCount, notGeocodedCount)
       }
     })
@@ -107,3 +116,7 @@ async function run(url) {
 }
 
 run(url)
+
+function getAddress(r) {
+  return `${r.addressLine1} ${r.city}, ${r.state} ${r.zip}`
+}

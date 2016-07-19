@@ -2,7 +2,6 @@ import debug from 'debug'
 import mongodb from 'mongodb'
 import Timer from './timer'
 import assert from 'assert'
-//import stringify from 'json-stringify-safe'
 import minimist from 'minimist'
 
 const dbg = debug('app:cms-providers')

@@ -2,7 +2,6 @@ import debug from 'debug'
 import mongodb from 'mongodb'
 import Timer from './timer'
 import assert from 'assert'
-//import stringify from 'json-stringify-safe'
 import minimist from 'minimist'
 
 const dbg = debug('app:cms-locations')
@@ -32,8 +31,9 @@ async function run(url) {
     db.collection(target).createIndex({locationKey: 1})
 
     const count = await db.collection(source).count()
+    const limit = argv.limit || count
 
-    dbg('begin aggregation: source-count=%o', count)
+    dbg('begin aggregation: source-count=%o, limit=%o', count, limit)
 
     // note: substr[blah, 0, -1] to convert number to string (better way?)
 
@@ -49,7 +49,7 @@ async function run(url) {
 
     const result = await db.collection(source).aggregate(
       [
-        {$limit: argv.limit || count},
+        {$limit: limit},
         {
           $group: {
             _id: {
