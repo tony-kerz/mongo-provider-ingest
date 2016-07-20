@@ -200,7 +200,7 @@ sections below describe normalized entities
 }
 ```
 
-> the `geocoded-addresses` collection is normalized to facilitate the ongoing geocoding process which is relatively expensive because of it's requirement to call an external rate-limited geocoding service
+> the `geocoded-addresses` collection is normalized to facilitate [the ongoing geocoding](#geocoding) process which is relatively expensive because of it's requirement to call an external rate-limited geocoding service
 
 ### denormalization steps
 
@@ -249,4 +249,22 @@ sections below describe normalized entities
 	}
 }
 
+```
+
+## geocoding
+
+this repo includes [a geocoding utility](src/geocoder.js) that will operate on a collection of location objects,
+geocoding records that don't have corresponding records in a persistent collection of geocoded addresses (basically a cache of sorts).
+
+### sample cli commands
+
+1. `npm run geocode -- --state=CA`
+1. `npm run geocode -- --city=New York`
+1. `npm run geocode -- --zip=10021`
+
+> other types of useful queries other than the ones above can easily be added if identified
+<!-- -->
+> only 30K records will be geocoded in one run by default per mapzen rate limits, but this can be overridden like so:
+```
+npm run geocode -- --state=CA --limit=40000
 ```
