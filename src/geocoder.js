@@ -5,7 +5,7 @@ import Timer from 'tymer'
 import geocode from 'geocodr'
 import minimist from 'minimist'
 
-const dbg = debug('app:mongodb-geocoder')
+const dbg = debug('app:geocoder')
 const argv = minimist(process.argv.slice(2))
 dbg('argv=%o', argv)
 
@@ -17,19 +17,19 @@ const source = argv.sourceCollection || 'cmsLocations'
 const target = argv.targetCollection || 'geocodedAddresses'
 const thresh = argv.thresh || 100
 
-let alreadyGeocodedCount = 0
-let notGeocodedCount = 0
-
 let query = {}
 
 argv.city && (query = {...query, city: argv.city})
 argv.state && (query = {...query, state: argv.state})
 argv.zip && (query = {...query, zip: argv.zip})
 
-async function run(url) {
-  dbg('run: query=%o', query)
+process.on('unhandledRejection', (err)=>{
+  dbg('unhandled-rejection: %o', err)
+  process.exit(1)
+})
 
-  const mainTimer = new Timer('main')
+async function run(url) {
+  const timer = new Timer('main')
 
   try {
     const db = await client.connect(url)
@@ -37,15 +37,12 @@ async function run(url) {
 
     db.collection(target).createIndex({[ADDRESS_KEY]: 1}, {unique: true})
 
-    const count = await db.collection(source).count()
-    const limit = argv.limit || count
+    const limit = argv.limit || 30000
 
-    dbg('begin aggregation: source-count=%o, limit=%o', count, limit)
+    dbg('begin aggregation: query=%o, limit=%o', query, limit)
 
-    await db.collection(source).aggregate(
+    const targets = await db.collection(source).aggregate(
       [
-        {$skip: argv.skip || 0},
-        {$limit: limit},
         {$match: query},
         {
           $lookup: {
@@ -56,8 +53,8 @@ async function run(url) {
           }
         },
         {$unwind: {path: '$geocoded', preserveNullAndEmptyArrays: true}},
+        {$match: {'geocoded.geoPoint': null}},
         {
-          // to-do: are native mongo ids much more efficient than strings?
           $group: {
             _id: `$${ADDRESS_KEY}`,
             addressLine1: {$last: '$addressLine1'},
@@ -66,48 +63,42 @@ async function run(url) {
             zip: {$last: '$zip'},
             geoPoint: {$last: '$geocoded.geoPoint'}
           }
-        }
+        },
+        {$limit: limit}
       ],
       {allowDiskUse: true}
     )
-    .each(async (err, record)=>{
-      assert.equal(null, err)
-      if (record) {
-        if (record.geoPoint) {
-          alreadyGeocodedCount++
-        } else {
-          const timer = new Timer()
-          notGeocodedCount++
-          const coordinates = await geocode(getAddress(record))
-          dbg('coordinates=%o', coordinates)
-          // insert new doc into target
-          const result = await db.collection(target).insert(
-            {
-              geoPoint: {type: 'Point', coordinates},
-              addressLine1: record.addressLine1,
-              city: record.city,
-              state: record.state,
-              zip: record.zip,
-              addressKey: record.addressKey
-            }
-          )
-          dbg('result=%o', result)
-          assert(result.modifiedCount == 1, 'expected inserted-count == 1')
-          timer.stop()
-          mainTimer.record(timer.last())
+    .toArray()
+
+    dbg('targets.length=%o', targets.length)
+
+    for (let i = 0; i < limit; i++) {
+      timer.start()
+      const record = targets[i]
+      const coordinates = await geocode(getAddress(record))
+      const result = await db.collection(target).insertOne(
+        {
+          geoPoint: {type: 'Point', coordinates},
+          addressLine1: record.addressLine1,
+          city: record.city,
+          state: record.state,
+          zip: record.zip,
+          addressKey: record._id
         }
-        if (mainTimer.count() % thresh == 0) {
-          dbg('timer=%o', mainTimer.toString())
-        }
-      } else {
-        // possible to hit this before last record processed...?
-        // may require little sleep here to avoid race...
-        dbg('no more records...')
-        db.close()
-        dbg('successfully processed [%o] records in [%s] seconds', mainTimer.count(), (mainTimer.total()/1000).toFixed(3))
-        dbg('already-geocoded-count=%o, not-geocoded-count=%o', alreadyGeocodedCount, notGeocodedCount)
+      )
+      assert.equal(result.insertedCount, 1)
+      timer.lap()
+      if (timer.count() % thresh == 0) {
+        dbg('timer=%o', timer.toString())
       }
-    })
+      if (timer.count() == limit) {
+        dbg('completed limit, cleaning up...')
+        db.close()
+        dbg('successfully processed [%o] records in [%s] seconds', timer.count(), (timer.total()/1000).toFixed(3))
+      }
+    }
+
+    db.close()
   }
   catch (caught) {
     dbg('connect: caught=%o', caught)
