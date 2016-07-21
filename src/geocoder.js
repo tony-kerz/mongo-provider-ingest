@@ -72,7 +72,7 @@ async function run(url) {
 
     dbg('targets.length=%o', targets.length)
 
-    for (let i = 0; i < limit; i++) {
+    for (let i = 0; i < targets.length; i++) {
       timer.start()
       const record = targets[i]
       const coordinates = await geocode(getAddress(record))
@@ -87,17 +87,13 @@ async function run(url) {
         }
       )
       assert.equal(result.insertedCount, 1)
-      timer.lap()
+      timer.stop()
       if (timer.count() % thresh == 0) {
         dbg('timer=%o', timer.toString())
       }
-      if (timer.count() == limit) {
-        dbg('completed limit, cleaning up...')
-        db.close()
-        dbg('successfully processed [%o] records in [%s] seconds', timer.count(), (timer.total()/1000).toFixed(3))
-      }
     }
 
+    dbg('successfully processed [%o] records in [%s] seconds', timer.count(), (timer.total()/1000).toFixed(3))
     db.close()
   }
   catch (caught) {
