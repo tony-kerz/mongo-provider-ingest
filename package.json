@@ -6,10 +6,12 @@
   "scripts": {
     "start": "export DEBUG=app:* && babel-node ./src",
     "provider-locations-view": "export DEBUG=app:* && babel-node ./src/provider-locations-view.js",
+    "organization-locations-view": "export DEBUG=app:* && babel-node ./src/organization-locations-view.js",
     "cms-providers": "export DEBUG=app:* && babel-node ./src/cms-providers.js",
     "cms-locations": "export DEBUG=app:* && babel-node ./src/cms-locations.js",
     "cms-provider-locations": "export DEBUG=app:* && babel-node ./src/cms-provider-locations.js",
     "npi-providers": "export DEBUG=app:* && babel-node ./src/npi-providers.js",
+    "npi-organizations": "export DEBUG=app:* && babel-node ./src/npi-organizations.js",
     "geocode": "export DEBUG=app:geocoder && babel-node ./src/geocoder.js",
     "scratch": "export DEBUG=app:* && babel-node ./src/denorm-2.js",
     "leak-test-async": "export DEBUG=app:* && babel-node --expose-gc ./src/leak-test-async.js",

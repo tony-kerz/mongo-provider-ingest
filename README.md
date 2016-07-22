@@ -129,10 +129,11 @@ these denormalized collections can be compared to the [materialized-view](https:
 
 sections below describe normalized entities
 
-#### providers
+#### normalize providers
 
+- example cli: `npm run npi-providers`
 - [code](src/npi-providers.js)
-- sample:
+- example result:
 ```
 > db.npiProviders.find().limit(1).pretty()
 {
@@ -147,10 +148,10 @@ sections below describe normalized entities
 }
 ```
 
-#### locations
-
+#### normalize locations
+- example cli: `npm run cms-locations`
 - [code](src/cms-locations.js)
-- sample:
+- example result:
 ```
 > db.cmsLocations.find().limit(1).pretty()
 {
@@ -166,9 +167,10 @@ sections below describe normalized entities
 }
 ```
 
-#### provider-locations
+#### normalize provider-locations
+- example cli: `npm run cms-provider-locations`
 - [code](src/cms-provider-locations.js)
-- sample:
+- example result:
 ```
 > db.cmsProviderLocations.find().limit(1).pretty()
 {
@@ -178,9 +180,10 @@ sections below describe normalized entities
 }
 ```
 
-#### geocoded-addresses
+#### geocode addresses
+- example cli: `npm run geocode -- --query='{"city": "NEW YORK"}' --sourceCollection=npiOrganizations`
 - [code](src/geocoder.js)
-- sample:
+- example result:
 ```
 > db.geocodedAddresses.find().limit(1).pretty()
 {
@@ -200,13 +203,22 @@ sections below describe normalized entities
 }
 ```
 
-> the `geocoded-addresses` collection is normalized to facilitate [the ongoing geocoding](#geocoding) process which is relatively expensive because of it's requirement to call an external rate-limited geocoding service
+> the `geocoded-addresses` collection is normalized with the intent to persist indefinitely to minimize the frequency of ~300ms callouts to an external rate-limited geocoding service.
+<!-- -->
+> geocode program currently defaults `sourceCollection` to `cmsLocations`, but this can be overridden via the `--sourceCollection` parameter to geocode `npiOrganizations` (which is currently being used for the `npiOrganizationLocationsView`)
+<!-- -->
+> a max of 30K records will be geocoded in one run by default per rate limits, but this can be overridden like so:
+```
+npm run geocode -- --limit=40000
+```
 
 ### denormalization steps
 
-#### Provider-locations
+#### denormalize provider-locations-view
+- example cli: `npm run provider-locations-view -- --query='{"location.state": "NY"}'`
 - [code](src/provider-locations-view.js)
-- sample:
+- example result:
+
 ```
 > db.cmsProviderLocationsView.find({'address.state': 'NY'}).limit(1).pretty()
 {
@@ -251,20 +263,57 @@ sections below describe normalized entities
 
 ```
 
-## geocoding
+#### denormalize organization-locations-view
+- example cli: `npm run organization-locations-view -- --query='{"city": "NEW YORK"}'`
+- [code](src/organization-locations-view.js)
+- sample:
 
-this repo includes [a geocoding utility](src/geocoder.js) that will operate on a collection of location objects,
-geocoding records that don't have corresponding records in a persistent collection of geocoded addresses (basically a cache of sorts).
-
-### sample cli commands
-
-1. `npm run geocode -- --state=CA`
-1. `npm run geocode -- --city=New York`
-1. `npm run geocode -- --zip=10021`
-
-> other types of useful queries other than the ones above can easily be added if identified
-<!-- -->
-> only 30K records will be geocoded in one run by default per mapzen rate limits, but this can be overridden like so:
 ```
-npm run geocode -- --state=CA --limit=40000
+> db.npiOrganizationLocationsView.find().limit(1).pretty()
+{
+	"_id" : ObjectId("57914f8c1604c70ac2061dca"),
+	"specialties" : [
+		{
+			"code" : "207VE0102X",
+			"text" : "Obstetrics & Gynecology",
+			"system" : "2.16.840.1.113883.6.101"
+		},
+		{
+			"code" : "207VG0400X",
+			"text" : "Obstetrics & Gynecology",
+			"system" : "2.16.840.1.113883.6.101"
+		}
+	],
+	"name" : "REPRODUCTIVE MEDICINE ASSOCIATES OF BROOKLYN LLP",
+	"identifiers" : [
+		{
+			"authority" : "CMS",
+			"oid" : "2.16.840.1.113883.4.6",
+			"extension" : 1992999619
+		}
+	],
+	"address" : {
+		"line1" : "225 BROADWAY",
+		"city" : "NEW YORK",
+		"state" : "NY",
+		"zip" : 100073001
+	},
+	"phone" : 2127667272,
+	"geoPoint" : {
+		"type" : "Point",
+		"coordinates" : [
+			-75.497811,
+			44.691669
+		]
+	}
+}
 ```
+
+### other notes
+
+##### export/import
+```
+mongodump  --db test --collection npiOrganizationLocationsView --gzip
+tar czf npiOrganizationLocationsView.tar.gz dump
+```
+> apparently, if the `--archive` flag to `mongodump` is used on mac, the resultant archive doesn't `mongorestore` on windows, so we omit it here

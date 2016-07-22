@@ -4,7 +4,7 @@ import Timer from 'tymer'
 import assert from 'assert'
 import minimist from 'minimist'
 
-const dbg = debug('app:provider-locations-view')
+const dbg = debug('app:organization-locations-view')
 
 const argv = minimist(process.argv.slice(2))
 dbg('argv=%o', argv)
@@ -14,21 +14,19 @@ const url = argv.url || 'mongodb://localhost:27017/test'
 
 async function run(url) {
   dbg('run: url=%o', url)
-
-  const mainTimer = new Timer('main')
-  mainTimer.start()
-
-  const source = argv.sourceCollection || 'cmsProviderLocations'
-  const target = argv.targetCollection || 'cmsProviderLocationsView'
-  const query = argv.query ? JSON.parse(argv.query) : {}
-
-  dbg('run args: url=%o, source=%o, target=%o, query=%o', url, source, target, query)
-
   try {
+    const mainTimer = new Timer('main')
+    mainTimer.start()
+
+    const source = argv.sourceCollection || 'npiOrganizations'
+    const target = argv.targetCollection || 'npiOrganizationLocationsView'
+    const query = argv.query ? JSON.parse(argv.query) : {}
+
+    dbg('run args: url=%o, source=%o, target=%o, query=%o', url, source, target, query)
+
     const db = await client.connect(url)
 
-    db.collection(target).createIndex({'name.first': 1})
-    db.collection(target).createIndex({'name.last': 1})
+    db.collection(target).createIndex({'name': 1})
     db.collection(target).createIndex({'identifiers.extension': 1})
     db.collection(target).createIndex({'specialties.code': 1})
     db.collection(target).createIndex({geoPoint: '2dsphere'})
@@ -39,40 +37,22 @@ async function run(url) {
 
     const result = await db.collection(source).aggregate(
       [
+        {$match: query},
         {$limit: limit},
         {
           $lookup: {
-            from: 'npiProviders',
-            localField: 'npi',
-            foreignField: 'npi',
-            as: 'provider'
-          }
-        },
-        {$unwind: '$provider'},
-        {
-          $lookup: {
-            from: 'cmsLocations',
-            localField: 'locationKey',
-            foreignField: 'locationKey',
-            as: 'location'
-          }
-        },
-        {$unwind: '$location'},
-        {$match: query},
-        {
-          $lookup: {
             from: 'geocodedAddresses',
-            localField: 'location.addressKey',
+            localField: 'addressKey',
             foreignField: 'addressKey',
             as: 'geocoded'
           }
         },
         {$unwind: {path: '$geocoded', preserveNullAndEmptyArrays: true}},
-        {$unwind: '$provider.specialties'},
+        {$unwind: '$specialties'},
         {
           $lookup: {
             from: 'taxonomy',
-            localField: 'provider.specialties',
+            localField: 'specialties',
             foreignField: 'Code',
             as: 'taxonomy'
           }
@@ -84,7 +64,7 @@ async function run(url) {
             doc: {$last: '$$ROOT'},
             specialties: {
               $push: {
-                code: '$provider.specialties',
+                code: '$specialties',
                 text: '$taxonomy.Classification',
                 system: {$literal: '2.16.840.1.113883.6.101'}
               }
@@ -93,29 +73,22 @@ async function run(url) {
         },
         {
           $project: {
-            name: {
-              prefix: '$doc.provider.prefix',
-              first: '$doc.provider.firstName',
-              middle: '$doc.provider.middleName',
-              last: '$doc.provider.lastName',
-              suffix: '$doc.provider.suffix'
-            },
+            name: '$doc.name',
             identifiers: [
               {
                 authority: {$literal: 'CMS'},
                 oid: {$literal: '2.16.840.1.113883.4.6'},
-                extension: '$doc.provider.npi'
+                extension: '$doc.npi'
               }
             ],
             specialties: 1,
-            orgName: '$doc.location.orgName',
             address: {
-              line1: '$doc.location.addressLine1',
-              city: '$doc.location.city',
-              state: '$doc.location.state',
-              zip: '$doc.location.zip'
+              line1: '$doc.addressLine1',
+              city: '$doc.city',
+              state: '$doc.state',
+              zip: '$doc.zip'
             },
-            phone: '$doc.location.phone',
+            phone: '$doc.phone',
             geoPoint: '$doc.geocoded.geoPoint'
           }
         },
