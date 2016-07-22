@@ -10,34 +10,22 @@ const argv = minimist(process.argv.slice(2))
 dbg('argv=%o', argv)
 
 const ADDRESS_KEY = 'addressKey'
-
 const client = mongodb.MongoClient
 const url = argv.url || 'mongodb://localhost:27017/test'
 const source = argv.sourceCollection || 'cmsLocations'
 const target = argv.targetCollection || 'geocodedAddresses'
 const thresh = argv.thresh || 100
 
-let query = {}
-
-argv.city && (query = {...query, city: argv.city})
-argv.state && (query = {...query, state: argv.state})
-argv.zip && (query = {...query, zip: argv.zip})
-
-process.on('unhandledRejection', (err)=>{
-  dbg('unhandled-rejection: %o', err)
-  process.exit(1)
-})
-
 async function run(url) {
-  const timer = new Timer('main')
-
   try {
+    const timer = new Timer('main')
     const db = await client.connect(url)
     assert(db)
 
     db.collection(target).createIndex({[ADDRESS_KEY]: 1}, {unique: true})
 
     const limit = argv.limit || 30000
+    const query = argv.query ? JSON.parse(argv.query) : {}
 
     dbg('begin aggregation: query=%o, limit=%o', query, limit)
 
