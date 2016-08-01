@@ -1,6 +1,6 @@
 import debug from 'debug'
 import mongodb from 'mongodb'
-import Timer from './timer'
+import Timer from 'tymer'
 import assert from 'assert'
 import minimist from 'minimist'
 
@@ -59,7 +59,30 @@ async function run(url) {
               state: '$state',
               zip: '$zip'
             },
-            orgName: {$last: {$ifNull: ['$orgName', '$npi']}},
+            orgName: {$last: '$orgName'},
+            // practitioners: {
+            //   $push: {
+            //     name: {
+            //       first: '$firstName',
+            //       last: '$lastName'
+            //     }
+            //   }
+            // },
+            // orgName: {
+            //   $first: {
+            //     $ifNull: [
+            //       '$orgName',
+            //       {
+            //         $concat: [
+            //           {$substr: ['$firstName', 0, -1]},
+            //           ' ',
+            //           '$lastName',
+            //           '...'
+            //         ]
+            //       }
+            //     ]
+            //   }
+            // },
             phone: {$last: {$substr: ['$phone', 0, -1]}}
           }
         },
@@ -72,12 +95,14 @@ async function run(url) {
                 SEPARATOR
               ].concat(addressKeyArray)
             },
+            orgKey: {$substr: ['$_id.orgKey', 0, -1]},
             addressKey: {$concat: addressKeyArray},
             addressLine1: '$_id.addressLine1',
             city: '$_id.city',
             state: '$_id.state',
             zip: '$_id.zip',
             orgName: 1,
+            //practitioners: 1,
             phone: 1
           }
         },

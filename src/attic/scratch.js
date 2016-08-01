@@ -1,7 +1,7 @@
 import debug from 'debug'
+import assert from 'assert'
 import mongodb from 'mongodb'
 import Timer from 'tymer'
-import assert from 'assert'
 import minimist from 'minimist'
 
 const dbg = debug('app:organization-locations-view')
@@ -18,8 +18,8 @@ async function run(url) {
     const mainTimer = new Timer('main')
     mainTimer.start()
 
-    const source = argv.sourceCollection || 'npiOrganizations'
-    const target = argv.targetCollection || 'npiOrganizationLocationsView'
+    const source = argv.sourceCollection || 'cmsProviderLocationsView'
+    const target = argv.targetCollection || 'cmsOrganizationLocationsView'
     const query = argv.query ? JSON.parse(argv.query) : {}
 
     dbg('run args: url=%o, source=%o, target=%o, query=%o', url, source, target, query)
@@ -37,59 +37,39 @@ async function run(url) {
 
     const result = await db.collection(source).aggregate(
       [
-        {$match: query},
-        {$limit: limit},
-        {
-          $lookup: {
-            from: 'geocodedAddresses',
-            localField: 'addressKey',
-            foreignField: 'addressKey',
-            as: 'geocoded'
-          }
-        },
-        {$unwind: {path: '$geocoded', preserveNullAndEmptyArrays: true}},
-        {$unwind: '$specialties'},
-        {
-          $lookup: {
-            from: 'taxonomy',
-            localField: 'specialties',
-            foreignField: 'Code',
-            as: 'taxonomy'
-          }
-        },
-        {$unwind: '$taxonomy'},
         {
           $group: {
-            _id: '$_id',
-            doc: {$last: '$$ROOT'},
-            specialties: {
-              $push: {
-                code: '$specialties',
-                text: '$taxonomy.Classification',
-                system: {$literal: '2.16.840.1.113883.6.101'}
-              }
-            }
+            _id: {
+              orgName: {$substr: ['$orgName', 0, -1]},
+              addressLine1: '$address.line1',
+              city: '$address.city',
+              state: '$address.state',
+              zip: '$address.zip'
+            },
+            specialties: {$push: '$specialties'},
+            practitioners: {$push: {
+              last: '$name.last',
+              first: '$name.first'
+            }},
+            doc: {$last: '$$ROOT'}
           }
         },
+        {$limit: limit},
         {
           $project: {
-            name: '$doc.name',
+            _id: 0,
+            orgName: '$doc.orgName',
             identifiers: [
               {
                 authority: {$literal: 'CMS'},
                 oid: {$literal: '2.16.840.1.113883.4.6'},
-                extension: '$doc.npi'
+                extension: '$doc.orgKey'
               }
             ],
-            specialties: 1,
-            address: {
-              line1: '$doc.addressLine1',
-              city: '$doc.city',
-              state: '$doc.state',
-              zip: '$doc.zip'
-            },
-            phone: '$doc.phone',
-            geoPoint: '$doc.geocoded.geoPoint'
+            address: '$doc.address',
+            specialties: {$setUnion: '$specialties'},
+            practitioners: 1,
+            phone: '$doc.phone'
           }
         },
         {$out: target}
