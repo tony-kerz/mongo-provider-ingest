@@ -15,6 +15,7 @@ const url = argv.url || 'mongodb://localhost:27017/test'
 const source = argv.sourceCollection || 'cmsLocations'
 const target = argv.targetCollection || 'geocodedAddresses'
 const thresh = argv.thresh || 100
+const sleepMillis = argv.sleepMillis || 0
 
 async function run(url) {
   try {
@@ -27,7 +28,7 @@ async function run(url) {
     const limit = argv.limit || 30000
     const query = argv.query ? JSON.parse(argv.query) : {}
 
-    dbg('begin aggregation: query=%o, limit=%o', query, limit)
+    dbg('begin aggregation: query=%o, limit=%o, sleep-millis=%o', query, limit, sleepMillis)
 
     const targets = await db.collection(source).aggregate(
       [
@@ -63,21 +64,28 @@ async function run(url) {
     for (let i = 0; i < targets.length; i++) {
       timer.start()
       const record = targets[i]
-      const coordinates = await geocode(getAddress(record))
-      const result = await db.collection(target).insertOne(
-        {
-          geoPoint: {type: 'Point', coordinates},
-          addressLine1: record.addressLine1,
-          city: record.city,
-          state: record.state,
-          zip: record.zip,
-          addressKey: record._id
+      const address = getAddress(record)
+      //dbg('attempting to geocode address=%o', address)
+      const coordinates = await geocode(address)
+      if (coordinates) {
+        const result = await db.collection(target).insertOne(
+          {
+            geoPoint: {type: 'Point', coordinates},
+            addressLine1: record.addressLine1,
+            city: record.city,
+            state: record.state,
+            zip: record.zip,
+            addressKey: record._id
+          }
+        )
+        assert.equal(result.insertedCount, 1)
+        timer.stop()
+        if (timer.count() % thresh == 0) {
+          dbg('timer=%o', timer.toString())
         }
-      )
-      assert.equal(result.insertedCount, 1)
-      timer.stop()
-      if (timer.count() % thresh == 0) {
-        dbg('timer=%o', timer.toString())
+        sleep(sleepMillis)
+      } else {
+        dbg('unable to geocode address [%o], skipping...', address)
       }
     }
 
@@ -94,4 +102,12 @@ run(url)
 
 function getAddress(r) {
   return `${r.addressLine1} ${r.city}, ${r.state} ${r.zip}`
+}
+
+function sleep(s) {
+  const e = new Date().getTime() + (s)
+  while (new Date().getTime() <= e) {
+    // eslint-disable-next-line no-extra-semi
+    ;
+  }
 }

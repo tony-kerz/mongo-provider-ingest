@@ -148,7 +148,7 @@ sections below describe normalized entities
 }
 ```
 
-#### normalize locations
+#### normalize (cms) locations
 - example cli: `npm run cms-locations`
 - [code](src/cms-locations.js)
 - example result:
@@ -166,8 +166,10 @@ sections below describe normalized entities
 	"zip" : 678802034
 }
 ```
+> cms data can have multiple location records for a single practice,
+> so we call this collection `cmsLocations` v something like `cmsOrganizations`
 
-#### normalize provider-locations
+#### normalize (cms) provider-locations
 - example cli: `npm run cms-provider-locations`
 - [code](src/cms-provider-locations.js)
 - example result:
@@ -180,8 +182,33 @@ sections below describe normalized entities
 }
 ```
 
+#### normalize (npi) organizations
+- example cli: `npm run npi-organizations`
+- [code](src/npi-organizations.js)
+- example result:
+```
+> db.npiOrganizations.find().limit(1).pretty()
+{
+	"_id" : ObjectId("57914f761604c70ac2f48faa"),
+	"name" : "STEVEN ENGEL PEDIATRICS",
+	"addressLine1" : "1700 NEUSE BLVD",
+	"city" : "NEW BERN",
+	"state" : "NC",
+	"zip" : 285602304,
+	"phone" : NumberLong("2526373799"),
+	"npi" : 1003000118,
+	"specialties" : [
+		"208000000X"
+	],
+	"addressKey" : "1700 NEUSE BLVD:NEW BERN:NC:285602304",
+	"locationKey" : "1003000118:1700 NEUSE BLVD:NEW BERN:NC:285602304"
+}
+```
+> npi data only has a single record for an organization with a single location,
+> so we call this collection `npiOrganizations` v something like `npiLocations`
+
 #### geocode addresses
-- example cli: `npm run geocode -- --query='{"city": "NEW YORK"}' --sourceCollection=npiOrganizations`
+- example cli: `npm run geocode -- --query='{"state": "NY"}' --sourceCollection=npiOrganizations`
 - [code](src/geocoder.js)
 - example result:
 ```
@@ -218,7 +245,6 @@ npm run geocode -- --limit=40000
 - example cli: `npm run provider-locations-view -- --query='{"location.state": "NY"}'`
 - [code](src/provider-locations-view.js)
 - example result:
-
 ```
 > db.cmsProviderLocationsView.find({'address.state': 'NY'}).limit(1).pretty()
 {
@@ -263,11 +289,10 @@ npm run geocode -- --limit=40000
 
 ```
 
-#### denormalize organization-locations-view
-- example cli: `npm run organization-locations-view -- --query='{"city": "NEW YORK"}'`
-- [code](src/organization-locations-view.js)
+#### denormalize (npi) organization-locations-view
+- example cli: `npm run npi-organization-locations-view -- --query='{"city": "NEW YORK"}'`
+- [code](src/npi-organization-locations-view.js)
 - sample:
-
 ```
 > db.npiOrganizationLocationsView.find().limit(1).pretty()
 {
@@ -308,12 +333,92 @@ npm run geocode -- --limit=40000
 	}
 }
 ```
+#### denormalize (cms) organization-locations-view
+- example cli: `npm run cms-organization-locations-view -- --query='{"city": "NEW YORK"}'`
+- [code](src/cms-organization-locations-view.js)
+- sample:
+```
+> db.cmsOrganizationLocationsView.find({'geoPoint': {$ne: null}}).limit(1).pretty()
+{
+	"_id" : ObjectId("579ae16795d9d8ce9b8a1754"),
+	"practitioners" : [
+		{
+			"name" : {
+				"first" : "PETER",
+				"last" : "BREINGAN"
+			}
+		},
+		{
+			"name" : {
+				"first" : "LAUREN",
+				"last" : "SMITH"
+			}
+		},
+		{
+			"name" : {
+				"first" : "RICHARD",
+				"last" : "DELUCA"
+			}
+		}
+	],
+	"specialties" : [
+		{
+			"code" : "152W00000X",
+			"text" : "Optometrist",
+			"system" : "2.16.840.1.113883.6.101"
+		},
+		{
+			"code" : "207W00000X",
+			"text" : "Ophthalmology",
+			"system" : "2.16.840.1.113883.6.101"
+		}
+	],
+	"name" : "PETER J. BREINGAN MD AND RICHARD L. DELUCA MD",
+	"identifiers" : [
+		{
+			"authority" : "CMS",
+			"oid" : "2.16.840.1.113883.4.6",
+			"extension" : "1052200805"
+		}
+	],
+	"address" : {
+		"line1" : "132 E 76TH ST",
+		"city" : "NEW YORK",
+		"state" : "NY",
+		"zip" : 100212850
+	},
+	"phone" : "2125052151",
+	"geoPoint" : {
+		"type" : "Point",
+		"coordinates" : [
+			-73.962167,
+			40.773891
+		]
+	},
+	"source" : "cms"
+}
+```
+
+#### merge cms and npi organization-locations-view
+currently the cms data is smaller so it is more efficient to export/import that into the npi data
+```
+mongoexport --db test --collection cmsOrganizationLocationsView --out colv.json
+```
+```
+mongoimport --verbose --db=test --collection=npiOrganizationLocationsView --stopOnError --file=colv.json --upsertFields=source,identifiers.extension
+```
+```
+mongo localhost:27017/test --eval 'db.organizationLocationsView.drop()'
+mongo localhost:27017/test --eval 'db.npiOrganizationLocationsView.renameCollection("organizationLocationsView")'
+```
+> rename `npiOrganizationLocationsView` to just `organizationLocationsView` after we add cms data to it
 
 ### other notes
 
 ##### export/import
 ```
-mongodump  --db test --collection npiOrganizationLocationsView --gzip
-tar czf npiOrganizationLocationsView.tar.gz dump
+rm -rf dump
+mongodump  --db test --collection organizationLocationsView --gzip
+tar czf organizationLocationsView.tar.gz dump
 ```
 > apparently, if the `--archive` flag to `mongodump` is used on mac, the resultant archive doesn't `mongorestore` on windows, so we omit it here

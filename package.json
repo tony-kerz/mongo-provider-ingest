@@ -6,6 +6,8 @@
   "scripts": {
     "start": "export DEBUG=app:* && babel-node ./src",
     "provider-locations-view": "export DEBUG=app:* && babel-node ./src/provider-locations-view.js",
+    "npi-organization-locations-view": "export DEBUG=app:* && babel-node ./src/npi-organization-locations-view.js",
+    "cms-organization-locations-view": "export DEBUG=app:* && babel-node ./src/cms-organization-locations-view.js",
     "organization-locations-view": "export DEBUG=app:* && babel-node ./src/organization-locations-view.js",
     "cms-providers": "export DEBUG=app:* && babel-node ./src/cms-providers.js",
     "cms-locations": "export DEBUG=app:* && babel-node ./src/cms-locations.js",
@@ -13,7 +15,7 @@
     "npi-providers": "export DEBUG=app:* && babel-node ./src/npi-providers.js",
     "npi-organizations": "export DEBUG=app:* && babel-node ./src/npi-organizations.js",
     "geocode": "export DEBUG=app:geocoder && babel-node ./src/geocoder.js",
-    "scratch": "export DEBUG=app:* && babel-node ./src/denorm-2.js",
+    "scratch": "export DEBUG=app:* && babel-node ./src/scratch.js",
     "leak-test-async": "export DEBUG=app:* && babel-node --expose-gc ./src/leak-test-async.js",
     "leak-test-async-simple": "export DEBUG=app:* && babel-node --expose-gc ./src/leak-test-async-simple.js",
     "leak-test-promise": "export DEBUG=app:* && babel-node --expose-gc ./src/leak-test-promise.js",
@@ -26,10 +28,10 @@
   "dependencies": {
     "axios": "^0.12.0",
     "debug": "^2.2.0",
-    "geocodr": "^1.0.2",
+    "geocodr": "^1.0.3",
     "lodash": "^4.13.1",
     "minimist": "^1.2.0",
-    "mongodb": "^2.1.18",
+    "mongodb": "^2.2.4",
     "tymer": "^1.0.2"
   },
   "devDependencies": {
