@@ -12,10 +12,12 @@ dbg('argv=%o', argv)
 const ADDRESS_KEY = 'addressKey'
 const client = mongodb.MongoClient
 const url = argv.url || 'mongodb://localhost:27017/test'
-const source = argv.sourceCollection || 'cmsLocations'
-const target = argv.targetCollection || 'geocodedAddresses'
+const sourceName = argv.sourceCollection || 'cmsLocations'
+const targetName = argv.targetCollection || 'geocodedAddresses'
 const thresh = argv.thresh || 100
 const sleepMillis = argv.sleepMillis || 0
+const limit = argv.limit || 30000
+const query = argv.query ? JSON.parse(argv.query) : {}
 
 async function run(url) {
   try {
@@ -23,26 +25,48 @@ async function run(url) {
     const db = await client.connect(url)
     assert(db)
 
-    db.collection(target).createIndex({[ADDRESS_KEY]: 1}, {unique: true})
+    const source = db.collection(sourceName)
+    const target = db.collection(targetName)
 
-    const limit = argv.limit || 30000
-    const query = argv.query ? JSON.parse(argv.query) : {}
+    target.createIndex({[ADDRESS_KEY]: 1}, {unique: true})
 
-    dbg('begin aggregation: query=%o, limit=%o, sleep-millis=%o', query, limit, sleepMillis)
+    const steps = [
+      {$match: query},
+      {
+        $lookup: {
+          from: targetName,
+          localField: ADDRESS_KEY,
+          foreignField: ADDRESS_KEY,
+          as: 'geocoded'
+        }
+      },
+      {$unwind: {path: '$geocoded', preserveNullAndEmptyArrays: true}},
+      {$match: {'geocoded.geoPoint': null}}
+    ]
 
-    const targets = await db.collection(source).aggregate(
-      [
-        {$match: query},
+    const result = await source.aggregate(
+      steps.concat([
         {
-          $lookup: {
-            from: target,
-            localField: ADDRESS_KEY,
-            foreignField: ADDRESS_KEY,
-            as: 'geocoded'
+          $group: {
+            _id: `$${ADDRESS_KEY}`
           }
         },
-        {$unwind: {path: '$geocoded', preserveNullAndEmptyArrays: true}},
-        {$match: {'geocoded.geoPoint': null}},
+        {
+          $group: {
+            _id: null,
+            count: {$sum: 1}
+          }
+        }
+      ])
+    )
+    .toArray()
+
+    assert(result && result.length == 1)
+
+    dbg('begin aggregation: query=%o, count=%o, limit=%o, sleep-millis=%o', query, result[0].count, limit, sleepMillis)
+
+    const targets = await source.aggregate(
+      steps.concat([
         {
           $group: {
             _id: `$${ADDRESS_KEY}`,
@@ -54,7 +78,7 @@ async function run(url) {
           }
         },
         {$limit: limit}
-      ],
+      ]),
       {allowDiskUse: true}
     )
     .toArray()
@@ -68,7 +92,7 @@ async function run(url) {
       //dbg('attempting to geocode address=%o', address)
       const coordinates = await geocode(address)
       if (coordinates) {
-        const result = await db.collection(target).insertOne(
+        const result = await target.insertOne(
           {
             geoPoint: {type: 'Point', coordinates},
             addressLine1: record.addressLine1,
