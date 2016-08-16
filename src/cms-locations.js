@@ -60,29 +60,6 @@ async function run(url) {
               zip: '$zip'
             },
             orgName: {$last: '$orgName'},
-            // practitioners: {
-            //   $push: {
-            //     name: {
-            //       first: '$firstName',
-            //       last: '$lastName'
-            //     }
-            //   }
-            // },
-            // orgName: {
-            //   $first: {
-            //     $ifNull: [
-            //       '$orgName',
-            //       {
-            //         $concat: [
-            //           {$substr: ['$firstName', 0, -1]},
-            //           ' ',
-            //           '$lastName',
-            //           '...'
-            //         ]
-            //       }
-            //     ]
-            //   }
-            // },
             phone: {$last: {$substr: ['$phone', 0, -1]}}
           }
         },

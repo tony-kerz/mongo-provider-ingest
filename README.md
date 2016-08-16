@@ -239,6 +239,39 @@ sections below describe normalized entities
 npm run geocode -- --limit=40000
 ```
 
+#### geocode zips
+
+since the ui is currently only setup to filter based on distance from a zipcode (vs a more detailed address), we are capitalizing on that fact by maintaining a list of zip to lat/lon values.
+
+we are currently sourcing that data from [here](https://boutell.com/zipcodes/).
+
+there is [a pending enhancement](https://jira.mongodb.org/browse/DOCS-8094) to `mongoimport` to support type specification of fields on csv imports. this is currently only available in a recent development release (v3.3.11), which i have downloaded locally to correctly import the zip code as a string (when imported by earlier versions of `mongoimport`, the zip field has leading zeros truncated due to undesirable integer conversion).
+
+here is the v3.3.11+ version cli command:
+```
+~/m/m/bin $ ./mongoimport --verbose --db=test --collection=geozip --stopOnError --file=/Users/tony/git/mongo-provider-ingest/data/zipcode.csv --type csv --headerline --columnsHaveTypes --drop --ignoreBlanks
+```
+
+the key being the `columnsHaveTypes` flag and specifying the types in the header fields like so:
+
+```
+"zip.string()","city.string()","state.string()","latitude.double()","longitude.double()","timezone.auto()","dst.auto()"
+"00210","Portsmouth","NH","43.005895","-71.013202","-5","1"
+"00211","Portsmouth","NH","43.005895","-71.013202","-5","1"
+"00212","Portsmouth","NH","43.005895","-71.013202","-5","1"
+```
+
+here is the relevant documentation excerpt for reference:
+```
+--columnsHaveTypes                          indicated that the field list (from --fields, --fieldsFile, or --headerline) specifies
+																						types; They must be in the form of '<colName>.<type>(<arg>)'. The type can be one of:
+																						auto, binary, bool, date, date_go, date_ms, date_oracle, double, int32, int64, string.
+																						For each of the date types, the argument is a datetime layout string. For the binary
+																						type, the argument can be one of: base32, base64, hex. All other types take an empty
+																						argument. Only valid for CSV and TSV imports. e.g. zipcode.string(),
+																						thumbnail.binary(base64)
+```
+
 ### denormalization steps
 
 #### denormalize provider-locations-view
