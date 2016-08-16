@@ -21,11 +21,12 @@ async function run(url) {
   const source = argv.sourceCollection || 'cmsProviderLocations'
   const target = argv.targetCollection || 'cmsProviderLocationsView'
   const query = argv.query ? JSON.parse(argv.query) : {}
+  const socketTimeoutSeconds = argv.socketTimeoutSeconds || 0
 
   dbg('run args: url=%o, source=%o, target=%o, query=%o', url, source, target, query)
 
   try {
-    const db = await client.connect(url)
+    const db = await client.connect(url, {server: {socketOptions: {socketTimeoutMS: socketTimeoutSeconds * 1000}}})
 
     db.collection(target).createIndex({'name.first': 1})
     db.collection(target).createIndex({'name.last': 1})
@@ -100,6 +101,7 @@ async function run(url) {
               last: '$doc.provider.lastName',
               suffix: '$doc.provider.suffix'
             },
+            npi: '$doc.provider.npi',
             identifiers: [
               {
                 authority: {$literal: 'CMS'},
