@@ -15,7 +15,7 @@
     "npi-providers": "export DEBUG=app:* && babel-node ./src/npi-providers.js",
     "npi-organizations": "export DEBUG=app:* && babel-node ./src/npi-organizations.js",
     "geocode": "export DEBUG=app:geocoder && babel-node ./src/geocoder.js",
-    "scratch": "export DEBUG=app:* && babel-node ./src/scratch.js",
+    "scratch": "export DEBUG=app:* && babel-node ./src/cms-organization-locations-view0.js",
     "leak-test-async": "export DEBUG=app:* && babel-node --expose-gc ./src/leak-test-async.js",
     "leak-test-async-simple": "export DEBUG=app:* && babel-node --expose-gc ./src/leak-test-async-simple.js",
     "leak-test-promise": "export DEBUG=app:* && babel-node --expose-gc ./src/leak-test-promise.js",
@@ -31,16 +31,16 @@
     "geocodr": "^1.0.3",
     "lodash": "^4.13.1",
     "minimist": "^1.2.0",
-    "mongodb": "^2.2.4",
+    "mongodb": "^2.2.7",
     "tymer": "^1.0.2"
   },
   "devDependencies": {
-    "babel-cli": "^6.10.1",
-    "babel-eslint": "^6.1.0",
-    "babel-plugin-transform-runtime": "^6.9.0",
-    "babel-polyfill": "^6.9.1",
-    "babel-preset-es2015": "^6.9.0",
+    "babel-cli": "^6.11.4",
+    "babel-eslint": "^6.1.2",
+    "babel-plugin-transform-runtime": "^6.12.0",
+    "babel-polyfill": "^6.13.0",
+    "babel-preset-es2015": "^6.13.2",
     "babel-preset-stage-0": "^6.5.0",
-    "eslint": "^2.13.1"
+    "eslint": "^3.3.1"
   }
 }

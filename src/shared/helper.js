@@ -1,21 +1,42 @@
+import minimist from 'minimist'
+import mongodb from 'mongodb'
+
 const SEPARATOR = ':'
 
-export function getLocationKeyArray(orgKey, addressKeyArray) {
+export function getLocationKeyArray({orgKey, addressKeyArray}) {
   return [
-    {$substr: [orgKey, 0, -1]},
+    orgKey,
     SEPARATOR
   ]
   .concat(addressKeyArray)
 }
 
-export function getAddressKeyArray(line1, city, state, zip) {
+export function getAddressKeyArray({line1, city, state, zip}) {
   return [
-    {$substr: [line1, 0, -1]},
+    line1,
     SEPARATOR,
-    {$substr: [city, 0, -1]},
+    city,
     SEPARATOR,
-    {$substr: [state, 0, -1]},
+    state,
     SEPARATOR,
-    {$substr: [zip, 0, -1]}
+    zip
   ]
+}
+
+export async function connect(url, socketTimeoutSeconds=0) {
+  return await mongodb.MongoClient.connect(
+    url,
+    {
+      server: {
+        socketOptions: {
+          socketTimeoutMS: socketTimeoutSeconds * 1000
+        }
+      }
+    }
+  )
+}
+
+export function jsonArg(name, dflt={}){
+  const argv = minimist(process.argv.slice(2))
+  return argv[name] ? JSON.parse(argv[name]) : dflt
 }

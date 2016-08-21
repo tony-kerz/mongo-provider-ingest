@@ -2,14 +2,16 @@ import getIngester from './shared/get-ingester'
 
 getIngester(
   {
-    debugName: 'cms-organization-locations-view',
+    debugName: 'cms-provider-locations-view',
     sourceName: 'cmsProviderLocations',
-    targetName: 'cmsOrganizationLocationsView',
+    targetName: 'cmsProviderLocationsView',
     targetIndices: [
-      {'name': 1},
+      {'name.first': 1},
+      {'name.last': 1},
       {'identifiers.extension': 1},
       {'specialties.code': 1},
-      {geoPoint: '2dsphere'}
+      {geoPoint: '2dsphere'},
+      {locationKey: 1},
     ],
     steps: [
       {
@@ -30,7 +32,6 @@ getIngester(
         }
       },
       {$unwind: '$location'},
-      {$match: {'location.orgName': {$ne: null}}},
       {
         $lookup: {
           from: 'geocodedAddresses',
@@ -52,18 +53,10 @@ getIngester(
       {$unwind: '$taxonomy'},
       {
         $group: {
-          _id: '$location.locationKey',
+          _id: '$_id',
           doc: {$last: '$$ROOT'},
-          practitioners: {
-            $addToSet: {
-              name: {
-                first: '$provider.firstName',
-                last: '$provider.lastName'
-              }
-            }
-          },
           specialties: {
-            $addToSet: {
+            $push: {
               code: '$provider.specialties',
               text: '$taxonomy.Classification',
               system: {$literal: '2.16.840.1.113883.6.101'}
@@ -73,17 +66,24 @@ getIngester(
       },
       {
         $project: {
-          _id: 0,
-          name: {$substr: ['$doc.location.orgName', 0, -1]},
+          name: {
+            prefix: '$doc.provider.prefix',
+            first: '$doc.provider.firstName',
+            middle: '$doc.provider.middleName',
+            last: '$doc.provider.lastName',
+            suffix: '$doc.provider.suffix'
+          },
+          npi: '$doc.provider.npi',
+          locationKey: '$doc.locationKey',
           identifiers: [
             {
               authority: {$literal: 'CMS'},
               oid: {$literal: '2.16.840.1.113883.4.6'},
-              extension: '$doc.location.orgKey'
+              extension: '$doc.provider.npi'
             }
           ],
-          practitioners: 1,
           specialties: 1,
+          orgName: '$doc.location.orgName',
           address: {
             line1: '$doc.location.addressLine1',
             city: '$doc.location.city',
@@ -91,10 +91,7 @@ getIngester(
             zip: '$doc.location.zip'
           },
           phone: '$doc.location.phone',
-          geoPoint: '$doc.geocoded.geoPoint',
-          source: {$literal: 'cms'},
-          orgKey: '$doc.location.orgKey',
-          locationKey: '$doc.location.locationKey'
+          geoPoint: '$doc.geocoded.geoPoint'
         }
       }
     ]
