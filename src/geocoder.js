@@ -1,16 +1,15 @@
 import debug from 'debug'
 import assert from 'assert'
-import mongodb from 'mongodb'
 import Timer from 'tymer'
 import geocode from 'geocodr'
 import minimist from 'minimist'
+import {connect} from './shared/helper'
 
 const dbg = debug('app:geocoder')
 const argv = minimist(process.argv.slice(2))
 dbg('argv=%o', argv)
 
 const ADDRESS_KEY = 'addressKey'
-const client = mongodb.MongoClient
 const url = argv.url || 'mongodb://localhost:27017/test'
 const sourceName = argv.sourceCollection || 'cmsLocations'
 const targetName = argv.targetCollection || 'geocodedAddresses'
@@ -22,7 +21,7 @@ const query = argv.query ? JSON.parse(argv.query) : {}
 async function run(url) {
   try {
     const timer = new Timer('main')
-    const db = await client.connect(url)
+    const db = await connect(url)
     assert(db)
 
     const source = db.collection(sourceName)
